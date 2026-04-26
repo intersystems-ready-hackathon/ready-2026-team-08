@@ -1,4 +1,26 @@
-# READY Hackathon Dev Template
+# TEAM 08 - [ Name of Project ] 
+
+## Project Summary 
+
+[ Add a 1-2 sentence summary of your project here - i,e. what is the high level goal of your project ] 
+
+## Technical Details
+
+[ Add details on the technical implementation of your project here ] 
+
+## Setup Instructions [Optional]
+
+[ If you have time, please add details on how someone else can start using your project here ]
+
+## Publicly accessible statement
+
+**Delete as appropriate**: 
+- We are happy for our project to be publicly visable after the event (you will remain repo admins) 
+- We would like our project to be made private at the end of the event
+
+
+# Template Instructions (feel free to delete)
+
 
 This repo provides a template to kickstart development with AI Hub. 
 
