@@ -1,0 +1,53 @@
+    zn "%SYS"
+
+    // Unexpire passwords and set up passwordless mode to simplify dev use.
+    // ** Comment out these two line for Production use **
+    do ##class(Security.Users).UnExpireUserPasswords("*")
+    
+
+    set tURL = "https://pm.community.intersystems.com/packages/zpm/latest/installer"
+    set r = ##class(%Net.HttpRequest).%New()
+    set r.Server = "pm.community.intersystems.com"
+    set r.SSLConfiguration = "ISC.FeatureTracker.SSL.Config"
+    do r.Get("/packages/zpm/latest/installer")
+    do $system.OBJ.LoadStream(r.HttpResponse.Data,"c")
+
+    // Enable callin for Embedded Python - see merge.cpf
+    do ##class(Security.Services).Get("%Service_CallIn",.prop)
+    set prop("Enabled")=1
+    set prop("AutheEnabled")=48
+    do ##class(Security.Services).Modify("%Service_CallIn",.prop)
+
+    // create IRISAPP namespace
+    do $SYSTEM.OBJ.Load("/home/irisowner/dev/App.Installer.cls", "ck")
+    set sc = ##class(App.Installer).setup()
+
+    zpm "enable -community"
+
+    zn "IRISAPP"
+
+
+    // Create /_vscode web app to support intersystems-community.testingmanager VS Code extension
+    zpm "install vscode-per-namespace-settings"
+
+    // Configure %UnitTest in IRISAPP to suit the VS Code extension
+    set ^UnitTestRoot="/usr/irissys/.vscode/IRISAPP/UnitTestRoot"
+
+    // Create a demo table
+    set createStatement = ##class(%SQL.Statement).%New()
+    set myquery = "CREATE TABLE Sample.Person (Name VARCHAR(50), Age INTEGER)"
+    do createStatement.%Prepare(myquery)
+    do createStatement.%Execute()
+
+    set addStatement = ##class(%SQL.Statement).%New()
+    set insertQuery = "INSERT INTO Sample.Person (Name, Age) VALUES (?, ?)"
+    do addStatement.%Prepare(insertQuery)
+    do addStatement.%Execute("Adam", 74)
+    do addStatement.%Execute("Peter", 24)
+    do addStatement.%Execute("Jessica", 43)
+    do addStatement.%Execute("Amy", 32)
+    do addStatement.%Execute("Zahra", 28)
+
+    
+    zpm "load /home/irisowner/dev/ -v":1:1
+    halt

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+  <Document name="ai-hub-dev-template.ZPM">
+    <Module>
+      <Name>ai-hub-dev-template</Name>
+      <Version>2.0.9</Version>
+      <Description>AI Hub Development Template</Description>
+      <Packaging>module</Packaging>
+      <SourcesRoot>src</SourcesRoot>
+      <Resource Name="Sample.PKG"/>
+      <Invoke Method="Run" Class="Sample.MCPSetup"/>
+    </Module>
+  </Document>
+</Export>

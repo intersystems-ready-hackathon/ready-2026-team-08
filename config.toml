@@ -1,0 +1,25 @@
+[[iris]]
+name = "local"
+server = { host = "localhost", port = 1972, username = "SuperUser", password = "SYS" }
+endpoints = [
+    {path = "/mcp/sample" }
+]
+
+
+[pool]
+min_connections = 1
+max_connections = 3
+connection_timeout = 30
+
+[discovery]
+auto_discover = true
+interval_seconds = 60
+cache_ttl = 300
+
+[mcp]
+transport = "http"
+port=8080
+host="0.0.0.0"
+
+[logging]
+level="debug"
