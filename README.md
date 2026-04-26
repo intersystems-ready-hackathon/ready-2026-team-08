@@ -59,8 +59,8 @@ OR
 4. Clone this repo: 
 
 ```bash
-git clone https://github.com/intersystems-community/ai-hub-dev-template
-cd ai-hub-dev-template
+git clone https://github.com/intersystems-ready-hackathon/ready-2026-team-08.git
+cd ready-2026-team-08
 ```
 
 5. (Optional) Add an OPENAI_API_KEY to a file called .env in this repo. You can see an example in .env.example.
