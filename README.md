@@ -1,140 +1,150 @@
-# TEAM 08 - [ Name of Project ] 
+# TEAM 08 — IRIS Log Whisperer
 
-## Project Summary 
+## Project Summary
 
-[ Add a 1-2 sentence summary of your project here - i,e. what is the high level goal of your project ] 
+An agentic chatbot that lets ops teams query IRIS event logs (`Ens_Util.Log`) in plain English. A langchain ReAct agent picks the right MCP tool — including a custom `query_iris_logs` tool — to answer questions like *"show me all errors"* or *"any FTP-related warnings?"* from a 50K-row event log dataset.
 
 ## Technical Details
 
-[ Add details on the technical implementation of your project here ] 
+### Architecture
 
-## Setup Instructions [Optional]
+```
+Browser (Chat UI)
+      │
+      ▼
+tool_ui.py (Python)            ◄── langchain ReAct agent (gpt-4-turbo)
+      │                            tools loaded from MCP server
+      ▼
+iris-mcp-server (Rust, :8080)
+      │
+      ▼
+Sample.ToolSet (IRIS, IRISAPP namespace)
+   ├── Sample.Tools          AddPerson, GetPeopleYoungerThan
+   ├── PythonServer          multiply (multiplication_mcp.py)
+   └── EventLogServer        query_iris_logs (event_log_mcp.py)  ◄── new
+```
 
-[ If you have time, please add details on how someone else can start using your project here ]
+### What we built on top of the template
 
-## Publicly accessible statement
+**1. New MCP tool `query_iris_logs`** ([src/Python/event_log_mcp.py](src/Python/event_log_mcp.py))
+- Reads a 50,002-row Ensemble event log CSV ([src/Sample/eventlog (3).csv](src/Sample/eventlog%20(3).csv)) — schema: `ID, Type, TimeLogged, SESSION, Job, SOURCE, Text, CLASS, METHOD, STACK`
+- **Smart Python-side filter**: detects `error/warning/alert/trace/info` in the user's query and filters by `Type` column; if still too many rows, ranks by keyword overlap against `Text/SOURCE/CLASS/METHOD`
+- File-based fallback source: reads IRIS `messages.log` + `^ERRORS` global via `iris.execute()`
+- Filtered subset (capped at 80 rows) is passed to `Sample.Agent.Chat()` (the IRIS AI Hub agent) for plain-English summarisation, which goes through the IRIS OpenAI provider rather than direct API (the project key has zero RPM for direct `gpt-4o-mini` calls)
+- CSV is cached in memory with mtime check — first call loads, subsequent calls are instant
 
-**Delete as appropriate**: 
-- We are happy for our project to be publicly visable after the event (you will remain repo admins) 
-- We would like our project to be made private at the end of the event
+**2. Agentic chatbot UI** ([tool_ui.py](tool_ui.py))
+- Self-contained Python HTTP server on port 5000 (stdlib `http.server`, no Flask)
+- **Chat tab**: langchain `create_agent` ReAct loop with all 4 MCP tools registered. Agent autonomously picks `query_iris_logs` for log questions, `AddPerson` for DB writes, `multiply` for math, etc. Every bot message shows the agent's tool-call trace inline so you can see *which* tool was picked and *what args* were passed.
+- **Tool Tester tab**: dynamic forms auto-generated from each MCP tool's schema for direct invocation — the original tester, kept for debugging.
 
+**3. Resolved IRIS quirks during development**
+- `iris.cls()` doesn't honour runtime namespace switches in the embedded irispython we shipped with — replaced with `iris.execute()` + a temp global (`^IRISPyLogTmp`) for IPC between Python and ObjectScript.
+- ObjectScript `<SYNTAX>` errors from underscore-prefixed local variables (`_ag` parses as concat operator with no left operand) — renamed to `tag/tsc/tprompt`.
+- The deprecated `langgraph.prebuilt.create_react_agent` hangs on `ainvoke()` in v1.0+ — switched to `langchain.agents.create_agent`.
 
-# Template Instructions (feel free to delete)
+## Setup Instructions
 
+### Prerequisites
+- Docker + docker-compose
+- Python 3.10+ on host (for the chat UI)
+- IRIS AI Hub container image (download from EAP portal — see template instructions below)
+- OpenAI API key with access to `gpt-4-turbo` (or `gpt-3.5-turbo`)
 
-This repo provides a template to kickstart development with AI Hub. 
-
-## Contents
-
-- **./skills** - agent skills with information on using AI hub for AI agents. Move these to a suitable location for your preferred AI coding agent. 
-- **./src/Sample** - Basic sample classes for tools, toolsets, agents and MCP servers. These are installed with zpm when the container is build.  
-- **./src/Python** - An example stdio MCP server defined in Python and used in the IRIS Toolsets 
-- **Datasets.md** - Notes on some datasets or tools to import datasets available on Open Exchange for easy install 
-
-## Using the template
-
-### Download AI Hub Container
-
-
-1. Download an AI Hub container from the [Early Access Program Portal](https://evaluation.intersystems.com/Eval/early-access/AIHub). The docker-containers end with `docker.tar.gz`, ensure you choose the version suitable for your operating system (arm64 for macOS).
-
-OR 
-
-1. Copy AI Hub Container from your Flash Drive
-
-2. Load the image with: 
-
-    ```bash
-    docker load -i /path/to/irishealth-community-2026.2.0AI.158.0-docker.tar.gz
-    ```
-
-    Once it's complete you should see `Loaded image: docker.iscinternal.com/docker-intersystems/intersystems/iris-community:2026.2.0AI.158.0` (if not you can use `docker images` to find the image name). 
-
-3. Change the Image name in the [Dockerfile](./Dockerfile) to match your version and operating system (image name printed above).
-
-
-
-### Build Template Repo
-
-4. Clone this repo: 
+### One-time setup
 
 ```bash
 git clone https://github.com/intersystems-ready-hackathon/ready-2026-team-08.git
 cd ready-2026-team-08
+
+# Add your OpenAI key
+echo 'OPENAI_API_KEY="sk-..."' > .env
+
+# Build & start IRIS
+docker-compose up -d --build
+
+# Install host-side Python deps for the chat UI
+pip install langchain langchain-openai langchain-mcp-adapters langgraph
 ```
 
-5. (Optional) Add an OPENAI_API_KEY to a file called .env in this repo. You can see an example in .env.example.
+### Run
 
-6. Build the container with: 
-
+In **terminal 1** — start the iris-mcp-server bridge (inside the container):
 ```bash
-docker-compose up -d --build 
+docker-compose exec -it iris bash
+iris-mcp-server -c /home/irisowner/dev/config.toml run
 ```
 
-## Using IRIS AI Hub Container
+In **terminal 2** — start the chat UI on the host:
+```bash
+python tool_ui.py
+```
 
-### Accessing IRIS 
+Open **http://localhost:5000**. The Chat tab is the default. Try:
+- *Show me all errors in the logs*
+- *Were there any FTP-related warnings?*
+- *Add a person named Alice aged 30*
+- *Multiply 12 by 7*
 
-You can find the Management Portal at http://localhost:52773/csp/sys/UtilHome.csp.
+### Optional: change the agent model
 
-Login with: 
-    - SuperUser / SYS
+The agent defaults to `gpt-4-turbo`. Override with:
+```bash
+AGENT_MODEL=gpt-3.5-turbo python tool_ui.py
+```
 
-You can access the IRIS Terminal with:
+## Publicly accessible statement
+
+We are happy for our project to be publicly visible after the event (we will remain repo admins).
+
+---
+
+# Template Instructions (kept for reference)
+
+This repo started from the AI Hub template.
+
+## Contents
+
+- **./skills** — agent skills with info on using AI Hub for AI agents.
+- **./src/Sample** — sample classes for tools, toolsets, agents and MCP servers (loaded via zpm at container build).
+- **./src/Python** — stdio MCP servers in Python, used by IRIS Toolsets. We added `event_log_mcp.py`.
+- **Datasets.md** — notes on Open Exchange datasets.
+
+## Download AI Hub Container
+
+1. Download an AI Hub container from the [Early Access Program Portal](https://evaluation.intersystems.com/Eval/early-access/AIHub) — pick the right arch (`arm64` for macOS).
+
+2. Load the image:
+    ```bash
+    docker load -i /path/to/irishealth-community-2026.2.0AI.158.0-docker.tar.gz
+    ```
+    Confirm with `docker images`.
+
+3. Match the image name in [Dockerfile](./Dockerfile) to the loaded image.
+
+## Accessing IRIS
+
+- Management Portal: <http://localhost:52773/csp/sys/UtilHome.csp> (login `SuperUser` / `SYS`)
+- IRIS Terminal: `docker-compose exec -it iris iris session iris`
+- Bash inside container: `docker-compose exec -it iris bash`
+
+## Testing the sample IRIS agent (ObjectScript path)
 
 ```objectscript
-docker-compose exec -it iris iris session iris
-```
-
-or the bash terminal with:
-
-```bash
-docker-compose exec -it iris iris session iris
-```
-
-### Testing Sample agent 
-
-There is a basic agent in src/Sample.Agent, a simple way to use it from objectscript is to run the following (note this does require an OPENAI_API_KEY to be added to .env before running th container). 
-
-```objectscript
-set $NAMESPACE= "IRISAPP"
+set $NAMESPACE = "IRISAPP"
 Set agent = ##class(Sample.Agent).%New()
 Set sc = agent.%Init()
 write:sc'=1 $SYSTEM.Status.GetErrorText(sc), !
 
 Set session = agent.CreateSession()
-
-// This requires using both tools defined in Sample.Tools and packaged in Sample.ToolSet
 Set request = "Add a person named Alice aged 30, and then get people younger than 35."
 Set response = agent.Chat(session, request)
 write response.content
 ```
 
-### Test MCP Server
+## MCP server endpoints
 
-The build process installs an MCP server web application at http://localhost:52773/mcp/sample. You can check this MCP server is running by going to http://localhost:52773/mcp/sample/v1/services. 
+- Service discovery: <http://localhost:52773/mcp/sample/v1/services>
+- HTTP transport (`iris-mcp-server` running): <http://localhost:8080/mcp/sample>
 
-For the MCP Server to be usable, there is an additional step of starting this via a Rust binary which connects to IRIS through the web gateway protocol. The Binary is installed in `/usr/irissys/bin` (should already be in PATH).  
-
-A sample configuration is shown in [config.toml](./config.toml), which serves a remote HTTP server on port 8080 (which is exposed by the docker-compose file). 
-
-To start the transport, open a bash terminal within the container: 
-
-```bash
-docker-compose exec -it iris bash 
-```
-
-Then start the `iris-mcp-server`
-
-```bash 
-iris-mcp-server -c config.toml run 
-```
-
-You can now connect the MCP server to your MCP Client of choice (e.g. coding agents like claude code) using the address: http://localhost:8080/mcp/sample. 
-
-An example python MCP client is shown in test_mcp_connection.py, which uses Langchain's MCP adapters module. To try this, run: 
-
-```bash
-pip install langchain-mcp-adapters
-python test_mcp.py
-```
+A minimal Python MCP client example is in [test_mcp.py](./test_mcp.py).
