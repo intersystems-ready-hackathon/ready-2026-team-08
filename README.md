@@ -27,7 +27,7 @@ Sample.ToolSet (IRIS, IRISAPP namespace)
 ### What we built on top of the template
 
 **1. New MCP tool `query_iris_logs`** ([src/Python/event_log_mcp.py](src/Python/event_log_mcp.py))
-- Reads a 50,002-row Ensemble event log CSV ([src/Sample/eventlog (3).csv](src/Sample/eventlog%20(3).csv)) — schema: `ID, Type, TimeLogged, SESSION, Job, SOURCE, Text, CLASS, METHOD, STACK`
+- Reads Ensemble event log — schema: `ID, Type, TimeLogged, SESSION, Job, SOURCE, Text, CLASS, METHOD, STACK`
 - **Smart Python-side filter**: detects `error/warning/alert/trace/info` in the user's query and filters by `Type` column; if still too many rows, ranks by keyword overlap against `Text/SOURCE/CLASS/METHOD`
 - File-based fallback source: reads IRIS `messages.log` + `^ERRORS` global via `iris.execute()`
 - Filtered subset (capped at 80 rows) is passed to `Sample.Agent.Chat()` (the IRIS AI Hub agent) for plain-English summarisation, which goes through the IRIS OpenAI provider rather than direct API (the project key has zero RPM for direct `gpt-4o-mini` calls)
