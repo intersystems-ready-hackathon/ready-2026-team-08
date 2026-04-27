@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP Server Test UI</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: #1a1d27;
+    border-bottom: 1px solid #2d3148;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #a78bfa;
+  }
+
+  header .subtitle {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+
+  .iris-badge {
+    margin-left: auto;
+    background: #1e3a5f;
+    color: #60a5fa;
+    border: 1px solid #1d4ed8;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  main {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .panel {
+    background: #1a1d27;
+    border: 1px solid #2d3148;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    background: #21253a;
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8b95b0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #2d3148;
+  }
+
+  .panel-body { padding: 16px; }
+
+  /* === LEFT SIDEBAR === */
+  .sidebar {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    overflow-y: auto;
+    border-right: 1px solid #2d3148;
+    background: #13151f;
+  }
+
+  /* === MAIN AREA === */
+  .content {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Connection panel */
+  .field-group { margin-bottom: 12px; }
+
+  label {
+    display: block;
+    font-size: 12px;
+    color: #8b95b0;
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+
+  input[type="text"], input[type="password"], input[type="number"], select, textarea {
+    width: 100%;
+    background: #0f1117;
+    border: 1px solid #2d3148;
+    color: #e2e8f0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    transition: border-color 0.2s;
+    font-family: inherit;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #7c3aed;
+  }
+
+  textarea { resize: vertical; min-height: 80px; font-family: 'Cascadia Code', 'Courier New', monospace; font-size: 12px; }
+
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+
+  button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: #7c3aed;
+    color: white;
+  }
+  .btn-primary:hover:not(:disabled) { background: #6d28d9; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: #21253a;
+    color: #a0aec0;
+    border: 1px solid #2d3148;
+  }
+  .btn-secondary:hover { background: #2d3148; color: #e2e8f0; }
+
+  .btn-success {
+    background: #065f46;
+    color: #6ee7b7;
+    border: 1px solid #047857;
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+  }
+  .btn-success:hover:not(:disabled) { background: #047857; }
+  .btn-success:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Status indicator */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: #0f1117;
+    border: 1px solid #2d3148;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-dot.disconnected { background: #6b7280; }
+  .status-dot.connecting { background: #f59e0b; animation: pulse 1s infinite; }
+  .status-dot.connected { background: #10b981; }
+  .status-dot.error { background: #ef4444; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Tool cards */
+  .tool-card {
+    background: #0f1117;
+    border: 1px solid #2d3148;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .tool-card:hover { border-color: #7c3aed; }
+  .tool-card.selected { border-color: #7c3aed; background: #1a0f3a; }
+
+  .tool-card-header {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .tool-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #2d1f7a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .tool-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #c4b5fd;
+  }
+
+  .tool-desc {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+
+  .tool-card-body {
+    padding: 0 14px 12px;
+    display: none;
+  }
+
+  .tool-card.selected .tool-card-body { display: block; }
+
+  .param-badge {
+    display: inline-block;
+    background: #1e3a5f;
+    color: #60a5fa;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+
+  /* Content area split */
+  .invoke-area {
+    padding: 20px;
+    border-bottom: 1px solid #2d3148;
+    flex-shrink: 0;
+  }
+
+  .invoke-area h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #a78bfa;
+    margin-bottom: 16px;
+  }
+
+  .param-form { display: flex; flex-direction: column; gap: 12px; }
+
+  .empty-state {
+    text-align: center;
+    color: #4b5563;
+    padding: 40px 20px;
+    font-size: 14px;
+  }
+
+  .empty-state .icon { font-size: 36px; margin-bottom: 12px; }
+
+  /* Log / Response area */
+  .log-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .log-entry {
+    background: #0f1117;
+    border: 1px solid #2d3148;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 12px;
+  }
+
+  .log-entry-header {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #2d3148;
+    font-weight: 600;
+  }
+
+  .log-entry-body {
+    padding: 10px 12px;
+    font-family: 'Cascadia Code', 'Courier New', monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #a0aec0;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .log-req .log-entry-header { background: #1a1f3a; color: #60a5fa; }
+  .log-res.ok .log-entry-header { background: #052e16; color: #34d399; }
+  .log-res.err .log-entry-header { background: #2d0f0f; color: #f87171; }
+  .log-info .log-entry-header { background: #1c1a00; color: #fbbf24; }
+
+  .timestamp { color: #4b5563; font-weight: 400; font-size: 11px; margin-left: auto; }
+
+  .clear-btn {
+    position: sticky;
+    top: 0;
+    align-self: flex-end;
+    font-size: 11px;
+    padding: 4px 10px;
+    background: #21253a;
+    color: #6b7280;
+    border: 1px solid #2d3148;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1;
+  }
+  .clear-btn:hover { color: #e2e8f0; }
+
+  /* Schema display */
+  .schema-pill {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .schema-pill.string { background: #1a3a1a; color: #86efac; }
+  .schema-pill.number, .schema-pill.integer { background: #1a2a3a; color: #93c5fd; }
+  .schema-pill.boolean { background: #3a1a3a; color: #d8b4fe; }
+
+  .required-star { color: #f87171; }
+
+  /* Tabs for content area */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    padding: 12px 20px;
+    border-bottom: 1px solid #2d3148;
+    background: #13151f;
+    flex-shrink: 0;
+  }
+
+  .tab-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    background: transparent;
+    color: #6b7280;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+  .tab-btn.active {
+    background: #21253a;
+    color: #a78bfa;
+    border-color: #2d3148;
+  }
+  .tab-btn:hover:not(.active) { color: #a0aec0; }
+
+  .tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .tab-content.active { display: flex; }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2d3148; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+
+  .divider { height: 1px; background: #2d3148; margin: 8px 0; }
+
+  .hint { font-size: 11px; color: #4b5563; margin-top: 4px; }
+
+  .json-viewer { font-family: 'Cascadia Code', 'Courier New', monospace; font-size: 11px; }
+  .json-key { color: #c4b5fd; }
+  .json-string { color: #86efac; }
+  .json-number { color: #93c5fd; }
+  .json-bool { color: #f472b6; }
+  .json-null { color: #6b7280; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>MCP Server Test UI</h1>
+    <div class="subtitle">InterSystems IRIS AI Hub — Sample ToolSet</div>
+  </div>
+  <div class="iris-badge">IRIS MCP</div>
+</header>
+
+<main>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <!-- Connection -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>⚡</span> Connection
+      </div>
+      <div class="panel-body">
+        <div class="status-bar">
+          <div class="status-dot disconnected" id="statusDot"></div>
+          <span id="statusText">Disconnected</span>
+        </div>
+        <div id="errorBanner" style="display:none;background:#2d0f0f;border:1px solid #7f1d1d;border-radius:6px;padding:8px 10px;font-size:12px;color:#fca5a5;margin-bottom:8px;word-break:break-word;"></div>
+
+        <div class="field-group">
+          <label>MCP Endpoint URL</label>
+          <input type="text" id="mcpUrl" value="" />
+          <div class="hint" id="urlHint">Run <code style="background:#0f1117;padding:1px 4px;border-radius:3px;">python mcp-proxy.py</code> then use the auto-filled proxy URL, or enter the direct URL.</div>
+        </div>
+
+        <div class="field-group">
+          <label>Username</label>
+          <input type="text" id="mcpUser" value="SuperUser" />
+        </div>
+
+        <div class="field-group">
+          <label>Password</label>
+          <input type="password" id="mcpPass" value="SYS" />
+        </div>
+
+        <div class="row" style="margin-top: 4px;">
+          <button class="btn-primary" id="connectBtn" onclick="connect()">Connect &amp; List Tools</button>
+          <button class="btn-secondary" id="disconnectBtn" onclick="disconnect()" disabled>Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tools list -->
+    <div class="panel" style="flex: 1;">
+      <div class="panel-header">
+        <span>🔧</span> Available Tools
+        <span id="toolCount" style="margin-left:auto;background:#21253a;border-radius:10px;padding:1px 8px;font-size:11px;">0</span>
+      </div>
+      <div class="panel-body" id="toolList">
+        <div class="empty-state">
+          <div class="icon">🔌</div>
+          Connect to discover tools
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Content area -->
+  <div class="content">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('invoke')">Invoke Tool</button>
+      <button class="tab-btn" onclick="switchTab('raw')">Raw JSON-RPC</button>
+      <button class="tab-btn" onclick="switchTab('log')">Response Log</button>
+    </div>
+
+    <!-- Invoke tab -->
+    <div class="tab-content active" id="tab-invoke" style="flex-direction: column; overflow:hidden;">
+      <div class="invoke-area" style="overflow-y:auto; max-height: 50vh;">
+        <div id="invokeContent">
+          <div class="empty-state">
+            <div class="icon">👆</div>
+            Select a tool from the sidebar to invoke it
+          </div>
+        </div>
+      </div>
+      <div style="flex:1; overflow-y:auto; padding:16px 20px;" id="invokeResultArea"></div>
+    </div>
+
+    <!-- Raw JSON-RPC tab -->
+    <div class="tab-content" id="tab-raw" style="flex-direction: column; overflow:hidden; padding: 20px; gap: 12px;">
+      <div>
+        <label>JSON-RPC Request Body</label>
+        <textarea id="rawBody" style="height:180px;" placeholder='{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'></textarea>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-primary" onclick="sendRaw()">Send Request</button>
+        <button class="btn-secondary" onclick="fillInitialize()">Initialize</button>
+        <button class="btn-secondary" onclick="fillListTools()">List Tools</button>
+        <button class="btn-secondary" onclick="fillCallTool()">Call Tool</button>
+      </div>
+      <div style="flex:1; overflow-y:auto;" id="rawResultArea"></div>
+    </div>
+
+    <!-- Log tab -->
+    <div class="tab-content" id="tab-log" style="overflow:hidden;">
+      <div class="log-area" id="logArea">
+        <div class="empty-state" style="margin: auto;">
+          <div class="icon">📋</div>
+          Request/response log appears here
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ─── State ─────────────────────────────────────────────────────────────────
+let sessionId = null;
+let requestCounter = 1;
+let tools = [];
+let selectedTool = null;
+let logEntries = [];
+let isConnected = false;
+let logEmpty = true;
+
+// ─── Auto-detect URL ────────────────────────────────────────────────────────
+(function setDefaultUrl() {
+  const el = document.getElementById('mcpUrl');
+  const hint = document.getElementById('urlHint');
+  // If served via mcp-proxy.py (http://localhost:PORT), use the proxy endpoint
+  if (window.location.protocol === 'http:' && window.location.hostname === 'localhost') {
+    el.value = window.location.origin + '/mcp-proxy';
+    hint.innerHTML = 'Using local proxy — run <code style="background:#0f1117;padding:1px 4px;border-radius:3px;">python mcp-proxy.py</code> to start it.';
+  } else {
+    // Opened as file:// — direct won't work due to CORS; show warning
+    el.value = 'http://localhost:8080/mcp/sample';
+    hint.innerHTML = '<span style="color:#f59e0b;">⚠ file:// origin will be blocked by CORS.</span> Run <code style="background:#0f1117;padding:1px 4px;border-radius:3px;">python mcp-proxy.py</code> and open <a href="http://localhost:3000" style="color:#60a5fa;">http://localhost:3000</a> instead.';
+  }
+})();
+
+// ─── Utility ───────────────────────────────────────────────────────────────
+function ts() {
+  return new Date().toLocaleTimeString('en-US', { hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+
+function nextId() { return requestCounter++; }
+
+function basicAuth(user, pass) {
+  return 'Basic ' + btoa(user + ':' + pass);
+}
+
+function setStatus(state, text, detail) {
+  const dot = document.getElementById('statusDot');
+  const label = document.getElementById('statusText');
+  const banner = document.getElementById('errorBanner');
+  dot.className = 'status-dot ' + state;
+  label.textContent = text;
+  if (detail) {
+    banner.textContent = detail;
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    const tabs = ['invoke','raw','log'];
+    b.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(t => {
+    t.classList.toggle('active', t.id === 'tab-' + name);
+  });
+}
+
+// ─── Logging ───────────────────────────────────────────────────────────────
+function addLog(type, title, body) {
+  const area = document.getElementById('logArea');
+  if (logEmpty) { area.innerHTML = ''; logEmpty = false; }
+
+  const entry = document.createElement('div');
+  entry.className = 'log-entry log-' + type;
+  entry.innerHTML = `
+    <div class="log-entry-header">
+      <span>${type === 'req' ? '→ Request' : type === 'res' ? '← Response' : 'ℹ Info'}</span>
+      <span>${escHtml(title)}</span>
+      <span class="timestamp">${ts()}</span>
+    </div>
+    <div class="log-entry-body">${formatJson(body)}</div>
+  `;
+  area.appendChild(entry);
+  area.scrollTop = area.scrollHeight;
+  return entry;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatJson(data) {
+  if (typeof data === 'string') {
+    try { data = JSON.parse(data); } catch(e) { return escHtml(data); }
+  }
+  return syntaxHighlight(JSON.stringify(data, null, 2));
+}
+
+function syntaxHighlight(json) {
+  return json
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, m => {
+      let cls = 'json-number';
+      if (/^"/.test(m)) { cls = /:$/.test(m) ? 'json-key' : 'json-string'; }
+      else if (/true|false/.test(m)) { cls = 'json-bool'; }
+      else if (/null/.test(m)) { cls = 'json-null'; }
+      return `<span class="${cls}">${m}</span>`;
+    });
+}
+
+// ─── MCP HTTP Transport ─────────────────────────────────────────────────────
+async function mcpRequest(body, logTitle) {
+  const url = document.getElementById('mcpUrl').value.trim();
+  const user = document.getElementById('mcpUser').value;
+  const pass = document.getElementById('mcpPass').value;
+
+  // iris-mcp-server requires Accept: text/event-stream — all responses are SSE
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'text/event-stream',
+    'Authorization': basicAuth(user, pass)
+  };
+
+  if (sessionId) headers['Mcp-Session-Id'] = sessionId;
+
+  addLog('req', logTitle || body.method, body);
+
+  let response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
+    });
+  } catch(e) {
+    let msg = e.message;
+    if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+      const isProxy = url.includes('/mcp-proxy');
+      msg = isProxy
+        ? 'Cannot reach proxy. Is mcp-proxy.py running? (python mcp-proxy.py)'
+        : 'Cannot reach MCP server — likely a CORS block. Run python mcp-proxy.py and open http://localhost:3000';
+    }
+    addLog('res err', 'Network Error', { error: msg, url });
+    throw Object.assign(e, { userMessage: msg });
+  }
+
+  // Capture session ID from response
+  const sid = response.headers.get('Mcp-Session-Id');
+  if (sid) sessionId = sid;
+
+  const contentType = response.headers.get('content-type') || '';
+
+  if (!response.ok) {
+    const text = await response.text();
+    addLog('res err', `HTTP ${response.status}`, { status: response.status, body: text });
+    throw new Error(`HTTP ${response.status}: ${text}`);
+  }
+
+  // Always parse as SSE (server requirement)
+  return await readSse(response, logTitle);
+}
+
+async function readSse(response, logTitle) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let lastResult = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split('\n');
+    buffer = lines.pop(); // keep incomplete line
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+        try {
+          lastResult = JSON.parse(data);
+          addLog('res ok', logTitle + ' (SSE)', lastResult);
+        } catch(e) {
+          addLog('res ok', logTitle + ' (SSE raw)', data);
+        }
+      }
+    }
+  }
+  return lastResult;
+}
+
+// Send a notification (no id, no response expected)
+async function mcpNotify(method, params) {
+  const url = document.getElementById('mcpUrl').value.trim();
+  const user = document.getElementById('mcpUser').value;
+  const pass = document.getElementById('mcpPass').value;
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'text/event-stream',
+    'Authorization': basicAuth(user, pass)
+  };
+  if (sessionId) headers['Mcp-Session-Id'] = sessionId;
+
+  const body = { jsonrpc: '2.0', method, params };
+  try {
+    await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+  } catch(e) { /* notifications are fire-and-forget */ }
+}
+
+// ─── Connect Flow ───────────────────────────────────────────────────────────
+async function connect() {
+  setStatus('connecting', 'Connecting…');
+  document.getElementById('connectBtn').disabled = true;
+  sessionId = null;
+  requestCounter = 1;
+
+  try {
+    // 1. Initialize
+    const initRes = await mcpRequest({
+      jsonrpc: '2.0',
+      id: nextId(),
+      method: 'initialize',
+      params: {
+        protocolVersion: '2025-03-26',
+        capabilities: { roots: { listChanged: true } },
+        clientInfo: { name: 'MCP Test UI', version: '1.0.0' }
+      }
+    }, 'initialize');
+
+    if (initRes && initRes.error) throw new Error(initRes.error.message);
+
+    // 2. Send initialized notification
+    await mcpNotify('notifications/initialized', {});
+
+    // 3. List tools
+    const toolsRes = await mcpRequest({
+      jsonrpc: '2.0',
+      id: nextId(),
+      method: 'tools/list',
+      params: {}
+    }, 'tools/list');
+
+    if (toolsRes && toolsRes.error) throw new Error(toolsRes.error.message);
+
+    tools = (toolsRes && toolsRes.result && toolsRes.result.tools) || [];
+    renderTools(tools);
+    document.getElementById('toolCount').textContent = tools.length;
+
+    setStatus('connected', `Connected — ${tools.length} tool${tools.length !== 1 ? 's' : ''}`);
+    isConnected = true;
+    document.getElementById('disconnectBtn').disabled = false;
+
+    addLog('info', 'Ready', {
+      message: 'Connected successfully. Select a tool from the sidebar.',
+      server: initRes && initRes.result && initRes.result.serverInfo,
+      sessionId: sessionId || '(none)'
+    });
+
+    switchTab('invoke');
+
+  } catch(e) {
+    const detail = e.userMessage || e.message || 'Unknown error — check the Response Log tab.';
+    setStatus('error', 'Connection failed', detail);
+    document.getElementById('connectBtn').disabled = false;
+    console.error(e);
+  }
+}
+
+function disconnect() {
+  sessionId = null;
+  tools = [];
+  selectedTool = null;
+  isConnected = false;
+  requestCounter = 1;
+  setStatus('disconnected', 'Disconnected');
+  document.getElementById('toolCount').textContent = '0';
+  document.getElementById('toolList').innerHTML = '<div class="empty-state"><div class="icon">🔌</div>Connect to discover tools</div>';
+  document.getElementById('invokeContent').innerHTML = '<div class="empty-state"><div class="icon">👆</div>Select a tool from the sidebar to invoke it</div>';
+  document.getElementById('invokeResultArea').innerHTML = '';
+  document.getElementById('connectBtn').disabled = false;
+  document.getElementById('disconnectBtn').disabled = true;
+}
+
+// ─── Tools Rendering ────────────────────────────────────────────────────────
+const TOOL_ICONS = { AddPerson: '👤', GetPeople: '🔍', multiply: '✖', default: '🔧' };
+
+function getIcon(name) {
+  for (const k of Object.keys(TOOL_ICONS)) {
+    if (name.includes(k)) return TOOL_ICONS[k];
+  }
+  return TOOL_ICONS.default;
+}
+
+function renderTools(tools) {
+  const list = document.getElementById('toolList');
+  if (!tools.length) {
+    list.innerHTML = '<div class="empty-state"><div class="icon">😶</div>No tools found</div>';
+    return;
+  }
+  list.innerHTML = '';
+  tools.forEach(tool => {
+    const card = document.createElement('div');
+    card.className = 'tool-card';
+    card.id = 'tc-' + tool.name;
+
+    const params = (tool.inputSchema && tool.inputSchema.properties) ? Object.entries(tool.inputSchema.properties) : [];
+    const required = (tool.inputSchema && tool.inputSchema.required) || [];
+
+    const paramBadges = params.map(([k, v]) =>
+      `<span class="param-badge">${escHtml(k)}</span>`
+    ).join('');
+
+    card.innerHTML = `
+      <div class="tool-card-header" onclick="selectTool('${escHtml(tool.name)}')">
+        <div class="tool-icon">${getIcon(tool.name)}</div>
+        <div style="min-width:0">
+          <div class="tool-name">${escHtml(tool.name)}</div>
+          <div class="tool-desc">${escHtml(tool.description || 'No description')}</div>
+        </div>
+      </div>
+      <div class="tool-card-body">
+        <div style="margin-bottom:4px;font-size:11px;color:#6b7280;">Parameters: ${paramBadges || '<em>none</em>'}</div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function selectTool(name) {
+  // Deselect old
+  if (selectedTool) {
+    const old = document.getElementById('tc-' + selectedTool.name);
+    if (old) old.classList.remove('selected');
+  }
+
+  selectedTool = tools.find(t => t.name === name);
+  if (!selectedTool) return;
+
+  const card = document.getElementById('tc-' + name);
+  if (card) card.classList.add('selected');
+
+  renderInvokePanel(selectedTool);
+  switchTab('invoke');
+}
+
+function renderInvokePanel(tool) {
+  const area = document.getElementById('invokeContent');
+  const schema = tool.inputSchema || {};
+  const props = schema.properties || {};
+  const required = schema.required || [];
+
+  const fields = Object.entries(props).map(([key, def]) => {
+    const isReq = required.includes(key);
+    const type = def.type || 'string';
+    const inputType = type === 'number' || type === 'integer' ? 'number' : 'text';
+
+    return `
+      <div class="field-group">
+        <label>
+          ${escHtml(key)}
+          <span class="schema-pill ${type}">${type}</span>
+          ${isReq ? '<span class="required-star">*</span>' : ''}
+        </label>
+        <input type="${inputType}" id="param-${escHtml(key)}"
+               placeholder="${escHtml(def.description || key)}"
+               ${type === 'integer' ? 'step="1"' : ''} />
+        ${def.description ? `<div class="hint">${escHtml(def.description)}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  area.innerHTML = `
+    <h2>${getIcon(tool.name)} ${escHtml(tool.name)}</h2>
+    <p style="font-size:13px;color:#8b95b0;margin-bottom:16px;">${escHtml(tool.description || '')}</p>
+    <div class="param-form">
+      ${fields || '<p style="color:#4b5563;font-size:13px;">This tool takes no parameters.</p>'}
+      <button class="btn-success" onclick="invokeTool()" ${!isConnected ? 'disabled' : ''}>
+        ▶ Invoke ${escHtml(tool.name)}
+      </button>
+    </div>
+  `;
+  document.getElementById('invokeResultArea').innerHTML = '';
+}
+
+// ─── Invoke Tool ─────────────────────────────────────────────────────────────
+async function invokeTool() {
+  if (!selectedTool) return;
+
+  const schema = selectedTool.inputSchema || {};
+  const props = schema.properties || {};
+  const required = schema.required || [];
+  const args = {};
+
+  for (const [key, def] of Object.entries(props)) {
+    const el = document.getElementById('param-' + key);
+    if (!el) continue;
+    let val = el.value.trim();
+    if (val === '' && !required.includes(key)) continue;
+    if (val === '' && required.includes(key)) {
+      el.style.borderColor = '#ef4444';
+      el.focus();
+      return;
+    }
+    el.style.borderColor = '';
+    const type = def.type || 'string';
+    if (type === 'number' || type === 'integer') val = Number(val);
+    else if (type === 'boolean') val = val.toLowerCase() === 'true';
+    args[key] = val;
+  }
+
+  const resultArea = document.getElementById('invokeResultArea');
+  resultArea.innerHTML = '<div style="color:#6b7280;font-size:13px;padding:8px 0;">Sending…</div>';
+
+  try {
+    const res = await mcpRequest({
+      jsonrpc: '2.0',
+      id: nextId(),
+      method: 'tools/call',
+      params: { name: selectedTool.name, arguments: args }
+    }, `tools/call: ${selectedTool.name}`);
+
+    const content = res && res.result && res.result.content;
+    let display = res;
+
+    resultArea.innerHTML = `
+      <div style="border-top:1px solid #2d3148;padding-top:16px;margin-top:4px;">
+        <div style="font-size:12px;font-weight:600;color:#34d399;margin-bottom:8px;">✓ Result</div>
+        <div style="background:#0f1117;border:1px solid #065f46;border-radius:6px;padding:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;color:#a0aec0;max-height:300px;overflow-y:auto;">${formatJson(display)}</div>
+      </div>
+    `;
+
+    switchTab('log');
+    setTimeout(() => switchTab('invoke'), 800);
+
+  } catch(e) {
+    resultArea.innerHTML = `
+      <div style="border-top:1px solid #2d3148;padding-top:16px;margin-top:4px;">
+        <div style="font-size:12px;font-weight:600;color:#f87171;margin-bottom:8px;">✗ Error</div>
+        <div style="background:#0f1117;border:1px solid #7f1d1d;border-radius:6px;padding:12px;font-size:12px;color:#fca5a5;">${escHtml(e.message)}</div>
+      </div>
+    `;
+  }
+}
+
+// ─── Raw JSON-RPC ─────────────────────────────────────────────────────────────
+async function sendRaw() {
+  const body = document.getElementById('rawBody').value.trim();
+  let parsed;
+  try { parsed = JSON.parse(body); } catch(e) {
+    document.getElementById('rawResultArea').innerHTML =
+      `<div style="color:#f87171;font-size:13px;">Invalid JSON: ${escHtml(e.message)}</div>`;
+    return;
+  }
+
+  const area = document.getElementById('rawResultArea');
+  area.innerHTML = '<div style="color:#6b7280;font-size:13px;">Sending…</div>';
+
+  try {
+    const res = await mcpRequest(parsed, parsed.method || 'raw');
+    area.innerHTML = `<div style="background:#0f1117;border:1px solid #2d3148;border-radius:6px;padding:12px;font-family:monospace;font-size:11px;white-space:pre-wrap;color:#a0aec0;margin-top:12px;">${formatJson(res)}</div>`;
+  } catch(e) {
+    area.innerHTML = `<div style="color:#f87171;font-size:13px;margin-top:12px;">${escHtml(e.message)}</div>`;
+  }
+}
+
+function fillInitialize() {
+  document.getElementById('rawBody').value = JSON.stringify({
+    jsonrpc: '2.0', id: nextId(), method: 'initialize',
+    params: {
+      protocolVersion: '2025-03-26',
+      capabilities: {},
+      clientInfo: { name: 'Test', version: '1.0.0' }
+    }
+  }, null, 2);
+}
+
+function fillListTools() {
+  document.getElementById('rawBody').value = JSON.stringify({
+    jsonrpc: '2.0', id: nextId(), method: 'tools/list', params: {}
+  }, null, 2);
+}
+
+function fillCallTool() {
+  const toolName = selectedTool ? selectedTool.name : 'mcp_sample_AddPerson';
+  const exampleArgs = selectedTool && selectedTool.inputSchema && selectedTool.inputSchema.properties
+    ? Object.fromEntries(Object.entries(selectedTool.inputSchema.properties).map(([k, v]) => {
+        const t = v.type || 'string';
+        return [k, t === 'integer' || t === 'number' ? 0 : ''];
+      }))
+    : { name: 'Alice', age: 30 };
+
+  document.getElementById('rawBody').value = JSON.stringify({
+    jsonrpc: '2.0', id: nextId(), method: 'tools/call',
+    params: { name: toolName, arguments: exampleArgs }
+  }, null, 2);
+}
+</script>
+</body>
+</html>
