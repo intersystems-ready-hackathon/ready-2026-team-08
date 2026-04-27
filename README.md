@@ -1,4 +1,4 @@
-# TEAM 08 — IRIS Log Whisperer
+# TEAM 08 — IRIS CHAT EDI
 
 ## Project Summary
 
